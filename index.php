@@ -1,11 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Building Entry Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Building Entry Management System</title>
+
+    <link rel="stylesheet" href="assets/style.css">
 </head>
+
 <body>
 
-    <h1>Building Entry Management System</h1>
+    <nav class="navbar">
+
+        <div class="logo">
+            BEMS
+        </div>
+
+        <div class="nav-title">
+            Building Entry Management System
+        </div>
+
+    </nav>
+
+
+    <main class="main">
+
+        <div class="welcome">
+
+            <h1>Welcome</h1>
+
+            <p>
+                Secure and simple building entry management system
+            </p>
+
+        </div>
+
+
+        <div class="cards">
+
+            <!-- Admin -->
+
+            <div class="card">
+
+                <div class="icon admin-icon">
+                    A
+                </div>
+
+                <h2>Admin</h2>
+
+                <p>
+                    Manage residents, security staff,
+                    visitors and building information.
+                </p>
+
+                <button class="btn">
+                    Admin Login
+                </button>
+
+            </div>
+
+
+            <!-- Security -->
+
+            <div class="card">
+
+                <div class="icon security-icon">
+                    S
+                </div>
+
+                <h2>Security</h2>
+
+                <p>
+                    Manage visitor entry, exit and
+                    building security.
+                </p>
+
+                <button class="btn">
+                    Security Login
+                </button>
+
+            </div>
+
+
+            <!-- Resident -->
+
+            <div class="card">
+
+                <div class="icon resident-icon">
+                    R
+                </div>
+
+                <h2>Resident</h2>
+
+                <p>
+                    Manage your profile, visitors
+                    and entry requests.
+                </p>
+
+                <button class="btn">
+                    Resident Login
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <footer>
+
+        <p>
+            © 2026 Building Entry Management System
+        </p>
+
+    </footer>
 
 </body>
 </html>

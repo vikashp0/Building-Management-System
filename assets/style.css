@@ -1,0 +1,247 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #1e293b;
+    min-height: 100vh;
+}
+
+
+/* NAVBAR */
+
+.navbar {
+    height: 70px;
+    background: #1e293b;
+    color: white;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 60px;
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.logo {
+    width: 45px;
+    height: 45px;
+
+    background: #2563eb;
+
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.nav-title {
+    margin-left: 15px;
+
+    font-size: 20px;
+    font-weight: bold;
+}
+
+
+/* MAIN */
+
+.main {
+    max-width: 1100px;
+
+    margin: auto;
+
+    padding: 70px 20px;
+}
+
+
+/* WELCOME */
+
+.welcome {
+    text-align: center;
+
+    margin-bottom: 50px;
+}
+
+.welcome h1 {
+    font-size: 42px;
+
+    margin-bottom: 12px;
+}
+
+.welcome p {
+    font-size: 18px;
+
+    color: #64748b;
+}
+
+
+/* CARDS */
+
+.cards {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 25px;
+
+    flex-wrap: wrap;
+}
+
+
+.card {
+    background: white;
+
+    width: 320px;
+
+    padding: 35px 30px;
+
+    border-radius: 15px;
+
+    text-align: center;
+
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+
+    transition: 0.3s;
+}
+
+
+.card:hover {
+    transform: translateY(-8px);
+
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+}
+
+
+/* ICON */
+
+.icon {
+    width: 70px;
+    height: 70px;
+
+    margin: 0 auto 20px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    color: white;
+
+    font-size: 28px;
+
+    font-weight: bold;
+}
+
+.admin-icon {
+    background: #2563eb;
+}
+
+.security-icon {
+    background: #16a34a;
+}
+
+.resident-icon {
+    background: #9333ea;
+}
+
+
+/* CARD TEXT */
+
+.card h2 {
+    font-size: 25px;
+
+    margin-bottom: 12px;
+}
+
+.card p {
+    color: #64748b;
+
+    line-height: 1.6;
+
+    min-height: 80px;
+
+    margin-bottom: 25px;
+}
+
+
+/* BUTTON */
+
+.btn {
+    width: 100%;
+
+    padding: 13px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #2563eb;
+
+    color: white;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+
+.btn:hover {
+    background: #1d4ed8;
+}
+
+
+/* FOOTER */
+
+footer {
+    text-align: center;
+
+    padding: 25px;
+
+    color: #64748b;
+
+    font-size: 14px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+    .navbar {
+        padding: 0 20px;
+    }
+
+    .nav-title {
+        font-size: 16px;
+    }
+
+    .main {
+        padding: 50px 15px;
+    }
+
+    .welcome h1 {
+        font-size: 32px;
+    }
+
+    .card {
+        width: 100%;
+
+        max-width: 400px;
+    }
+
+}

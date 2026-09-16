@@ -54,9 +54,9 @@
                     visitors and building information.
                 </p>
 
-                <button class="btn">
+                <a href="assets/login/login.php" class="btn">
                     Admin Login
-                </button>
+                </a>
 
             </div>
 
@@ -76,9 +76,9 @@
                     building security.
                 </p>
 
-                <button class="btn">
-                    Security Login
-                </button>
+                <a href="assets/login/login.php?role=security" class="btn">
+                   Security Login
+                </a>
 
             </div>
 
@@ -98,9 +98,9 @@
                     and entry requests.
                 </p>
 
-                <button class="btn">
+                <a href="assets/login/login.php?role=resident" class="btn">
                     Resident Login
-                </button>
+                </a>
 
             </div>
 

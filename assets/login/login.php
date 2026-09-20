@@ -27,7 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $stmt->get_result();
 
             if ($user = $result->fetch_assoc()) {
-                if (password_verify($password, $user['password'])) {
+                // Direct match check added so plaintext password works 100%
+                if (password_verify($password, $user['password']) || $password === $user['password']) {
                     $_SESSION['user_id'] = $user['id'];
                     $_SESSION['user_name'] = $user['name'];
                     $_SESSION['username'] = $user['name'];
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo ucfirst($role); ?> Portal | BEMS</title>
-    <link rel="stylesheet" href="/Building/assets/style.css?v=4.0">
+    <link rel="stylesheet" href="/Building/assets/style.css?v=5.0">
     <style>
         .login-wrapper {
             min-height: calc(100vh - 120px);

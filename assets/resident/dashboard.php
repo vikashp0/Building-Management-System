@@ -4,33 +4,71 @@ require_once __DIR__ . "/../config/database.php";
 
 require_role('resident');
 
-$resident_id = $_SESSION['user_id'];
-$resident_name = $_SESSION['user_name'];
+$resident_name = $_SESSION['user_name'] ?? $_SESSION['username'] ?? 'Resident';
+$resident_id = $_SESSION['user_id'] ?? 0;
 
-$total_requests = 0;
-$pending_requests = 0;
-$approved_requests = 0;
+$msg = '';
+$error = '';
 
-$stmt = $conn->prepare("
-    SELECT 
-        COUNT(*) AS total,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved
-    FROM visitor_entries
-    WHERE resident_id = ?
-");
+// Handle Pre-Approval Request Form
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'pre_approve') {
+    $guest_name = trim($_POST['guest_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $expected_date = trim($_POST['expected_date'] ?? '');
 
-if ($stmt) {
-    $stmt->bind_param("i", $resident_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($row = $result->fetch_assoc()) {
-        $total_requests = $row['total'] ?? 0;
-        $pending_requests = $row['pending'] ?? 0;
-        $approved_requests = $row['approved'] ?? 0;
+    if ($guest_name !== '' && $phone !== '') {
+        // Check if resident_id column exists
+        $col_check = $conn->query("SHOW COLUMNS FROM visitors LIKE 'resident_id'");
+        if ($col_check && $col_check->num_rows > 0) {
+            $stmt = $conn->prepare("INSERT INTO visitors (resident_id, visitor_name, phone, visit_date, status) VALUES (?, ?, ?, ?, 'PRE_APPROVED')");
+            if ($stmt) {
+                $stmt->bind_param("isss", $resident_id, $guest_name, $phone, $expected_date);
+                if ($stmt->execute()) {
+                    $msg = "Guest Pre-Approved Successfully!";
+                } else {
+                    $error = "Failed to pre-approve guest.";
+                }
+                $stmt->close();
+            }
+        } else {
+            $stmt = $conn->prepare("INSERT INTO visitors (visitor_name, phone, visit_date, status) VALUES (?, ?, ?, 'PRE_APPROVED')");
+            if ($stmt) {
+                $stmt->bind_param("sss", $guest_name, $phone, $expected_date);
+                if ($stmt->execute()) {
+                    $msg = "Guest Pre-Approved Successfully!";
+                } else {
+                    $error = "Failed to pre-approve guest.";
+                }
+                $stmt->close();
+            }
+        }
+    } else {
+        $error = "Guest name and phone number are required.";
     }
-    $stmt->close();
+}
+
+// Fetch Resident's Guests safely
+$visitors = [];
+$check_col = $conn->query("SHOW COLUMNS FROM visitors LIKE 'resident_id'");
+
+if ($check_col && $check_col->num_rows > 0) {
+    $stmt = $conn->prepare("SELECT * FROM visitors WHERE resident_id = ? ORDER BY id DESC LIMIT 20");
+    if ($stmt) {
+        $stmt->bind_param("i", $resident_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $visitors[] = $row;
+        }
+        $stmt->close();
+    }
+} else {
+    $res = $conn->query("SELECT * FROM visitors ORDER BY id DESC LIMIT 20");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $visitors[] = $row;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -38,8 +76,16 @@ if ($stmt) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resident Dashboard - BEMS</title>
+    <title>Resident Portal - BEMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --glass-card: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --blur: blur(20px);
+            --sidebar-width: 260px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -47,9 +93,15 @@ if ($stmt) {
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            color: #172033;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            background: #090d16;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.2) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.18) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #f8fafc;
         }
 
         .dashboard {
@@ -58,18 +110,31 @@ if ($stmt) {
         }
 
         .sidebar {
-            width: 250px;
-            min-height: 100vh;
-            background: #0f172a;
-            padding: 30px 20px;
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: var(--blur);
+            padding: 28px 18px;
+            border-right: 1px solid var(--glass-border);
         }
 
-        .logo {
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 50px;
+        .brand {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            padding: 10px 14px 30px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: #f59e0b;
+            border-radius: 50%;
+            box-shadow: 0 0 16px #f59e0b;
         }
 
         .nav {
@@ -79,130 +144,183 @@ if ($stmt) {
         }
 
         .nav a {
-            display: block;
-            padding: 14px 16px;
-            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.9));
             text-decoration: none;
-            border-radius: 8px;
-        }
-
-        .nav a:hover,
-        .nav a.active {
-            background: #2563eb;
-            color: white;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .main {
             flex: 1;
+            min-height: 100vh;
         }
 
-        .topbar {
-            height: 75px;
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
+        .header {
+            height: 72px;
+            background: rgba(10, 15, 29, 0.6);
+            backdrop-filter: var(--blur);
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            padding: 0 35px;
-            gap: 25px;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .resident-name {
-            font-weight: bold;
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            color: #f1f5f9;
         }
 
         .logout {
-            color: #dc2626;
             text-decoration: none;
-            font-weight: bold;
+            color: #f87171;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .content {
-            padding: 35px;
+            padding: 32px;
+            max-width: 1300px;
         }
 
-        .welcome h1 {
-            font-size: 30px;
-            margin-bottom: 8px;
-        }
-
-        .welcome p {
-            color: #64748b;
+        .page-section {
+            background: var(--glass-card);
+            backdrop-filter: var(--blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             margin-bottom: 30px;
         }
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+        .page-section h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
         }
 
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .card h3 {
-            color: #64748b;
-            font-size: 15px;
-            margin-bottom: 15px;
-        }
-
-        .number {
-            font-size: 32px;
-            font-weight: bold;
-        }
-
-        .request-box {
-            margin-top: 30px;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .request-box h2 {
-            margin-bottom: 10px;
-        }
-
-        .request-box p {
-            color: #64748b;
+        .page-section p {
+            color: #94a3b8;
+            font-size: 14px;
             margin-bottom: 20px;
         }
 
-        .request-button {
-            display: inline-block;
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            padding: 12px 20px;
-            border-radius: 7px;
-            font-weight: bold;
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
         }
 
-        .request-button:hover {
-            background: #1d4ed8;
+        .form-grid input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
         }
 
-        @media (max-width: 800px) {
-            .dashboard {
-                flex-direction: column;
-            }
+        .form-grid input:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
 
-            .sidebar {
-                width: 100%;
-                min-height: auto;
-            }
+        .btn-submit {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.9));
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            transition: all 0.2s ease;
+        }
 
-            .cards {
-                grid-template-columns: 1fr;
-            }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.15);
+        }
 
-            .content {
-                padding: 20px;
-            }
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            color: #f1f5f9;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -211,49 +329,89 @@ if ($stmt) {
 <div class="dashboard">
 
     <aside class="sidebar">
-        <div class="logo">BEMS</div>
+        <div class="brand">Resident Portal</div>
         <nav class="nav">
-            <a href="/Building/assets/resident/dashboard.php" class="active">Dashboard</a>
-            <a href="#">My Visitors</a>
-            <a href="#">Notifications</a>
-            <a href="#">Profile</a>
+            <a href="/Building/assets/resident/dashboard.php">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                Guest Passes
+            </a>
         </nav>
     </aside>
 
     <main class="main">
-        <header class="topbar">
-            <span class="resident-name"><?php echo htmlspecialchars($resident_name); ?></span>
-            <a href="/Building/assets/config/logout.php" class="logout">Logout</a>
+        <header class="header">
+            <div class="header-title">Resident Guest Pre-Approval</div>
+            <div class="header-user">
+                <span class="user-name"><?php echo htmlspecialchars($resident_name); ?></span>
+                <a href="/Building/assets/config/logout.php" class="logout">Logout</a>
+            </div>
         </header>
 
         <section class="content">
-            <div class="welcome">
-                <h1>Welcome, <?php echo htmlspecialchars($resident_name); ?></h1>
-                <p>Manage your visitor requests from here.</p>
+
+            <?php if ($msg !== ''): ?>
+                <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 12px 18px; border-radius: 12px; font-size: 14px; margin-bottom: 20px;">
+                    <?php echo htmlspecialchars($msg); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($error !== ''): ?>
+                <div style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 12px 18px; border-radius: 12px; font-size: 14px; margin-bottom: 20px;">
+                    <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- Pre-Approve Form -->
+            <div class="page-section">
+                <h2>Pre-Approve a Guest</h2>
+                <p>Allow quick gate entry for expected guests and visitors</p>
+
+                <form method="post" class="form-grid">
+                    <input type="hidden" name="action" value="pre_approve">
+                    <input type="text" name="guest_name" placeholder="Guest Full Name" required>
+                    <input type="text" name="phone" placeholder="Phone Number" required>
+                    <input type="date" name="expected_date" value="<?php echo date('Y-m-d'); ?>" required>
+                    <button type="submit" class="btn-submit">Issue Gate Pass</button>
+                </form>
             </div>
 
-            <div class="cards">
-                <div class="card">
-                    <h3>Total Requests</h3>
-                    <div class="number"><?php echo $total_requests; ?></div>
-                </div>
+            <!-- Approved Guests Table -->
+            <div class="page-section">
+                <h2>Your Pre-Approved Guests</h2>
+                <p>List of guest passes created for gate verification</p>
 
-                <div class="card">
-                    <h3>Pending Requests</h3>
-                    <div class="number"><?php echo $pending_requests; ?></div>
-                </div>
-
-                <div class="card">
-                    <h3>Approved Requests</h3>
-                    <div class="number"><?php echo $approved_requests; ?></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pass ID</th>
+                                <th>Status</th>
+                                <th>Guest Name</th>
+                                <th>Phone</th>
+                                <th>Visit Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($visitors)): ?>
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: #94a3b8;">No pre-approved guests added yet.</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($visitors as $v): ?>
+                                    <tr>
+                                        <td>#<?php echo $v['id']; ?></td>
+                                        <td><span class="status-badge"><?php echo htmlspecialchars($v['status'] ?? 'PRE_APPROVED'); ?></span></td>
+                                        <td><?php echo htmlspecialchars($v['visitor_name'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($v['phone'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($v['visit_date'] ?? 'N/A'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="request-box">
-                <h2>Visitor Requests</h2>
-                <p>Create a new visitor entry request for your guest.</p>
-                <a href="#" class="request-button">Create Visitor Request</a>
-            </div>
         </section>
     </main>
 
